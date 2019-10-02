@@ -25,11 +25,8 @@
 ros::NodeHandle nh;
 volatile int motor_vel; //The motor velocity between -255->full speed backwards and 255-> Full speed forward
 
-/*
- * My functions
- */
-/* Hard stop of motor
- * motor: LEFT or RIGHT (0 or 1)
+/* 
+ * Stop the motor
  */
 void motor_stop() {
 	//Stop if received an wrong direction
