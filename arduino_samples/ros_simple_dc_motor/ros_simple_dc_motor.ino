@@ -13,9 +13,9 @@
  * Define the material
  ******************************/
 //Arduino pin definitions
-#define MOT1_IN1 10//IN1 of the L298 should be connected to this arduino pin
-#define MOT1_IN2 9//IN2 of the L298 should be connected to this arduino pin
-#define MOT1_EN 11 //enable
+#define MOT1_IN1 6//IN1 of the L298 should be connected to this arduino pin
+#define MOT1_IN2 7//IN2 of the L298 should be connected to this arduino pin
+#define MOT1_EN 9 //enable
 #define LED 13 //A led that blinks when receiving
 
 
@@ -47,7 +47,7 @@ void motor_forward(unsigned int vel) {
 		analogWrite(MOT1_EN, vel);
 }
 
-/* Moves the motor in positive sens
+/* Moves the motor backwards
 		vel: [0-255] the desired pwm value 255 means full speed
  */
 void motor_backwards(unsigned int vel) {
