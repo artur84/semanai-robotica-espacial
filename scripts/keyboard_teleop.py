@@ -16,19 +16,12 @@ It is designed to use only leters and numbers without special characters
 Press CTRL-C or Escape to quit
 """
 
-
-
 def getKey():
     tty.setraw(sys.stdin.fileno())
     select.select([sys.stdin], [], [], 0)
     key = sys.stdin.read(1)
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
     return key
-
-
-
-def vels(speed, turn, mode):
-    return "currently:\t speed: %s\t turn: %s\t mode: %s" % (speed, turn, mode)
 
 if __name__ == "__main__":
     settings = termios.tcgetattr(sys.stdin)
