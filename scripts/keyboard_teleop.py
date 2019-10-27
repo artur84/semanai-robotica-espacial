@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """ This programs reads the PC keyboard and publishes the value of the pressed key to a ROS topic
-    Published topic
+    Published topic:
         /pressed_key
 """
 import rospy
