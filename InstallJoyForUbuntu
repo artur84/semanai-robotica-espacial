@@ -1,0 +1,172 @@
+Links:
+	Joy Ros main page:
+			Content	:	
+					General data about joy in ros.
+			Link	:	
+					http://wiki.ros.org/joy
+	Joy Ros tutorials:
+			Content	:	
+					Link of tutorial for instaletion.
+					Link of tutorial for use joy as an input for Turtle tutorial.
+			Link	:	
+					http://wiki.ros.org/joy/Tutorials
+	Joy Ros install tutorial:	
+			Content	:
+					How to install joy
+					Check if ubuntu detect your jostick 
+					How to check if everyinht is intalled correcly
+					See how ros detec and send your jostick data
+			Link	:	
+					http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
+	Ros msgs		:
+			Content :
+					Common_msgs:
+							Show all categories of msgs used in Ros and its contains.
+								Std_msgs	:
+											Common message types representing primitive data types and other basic message like: Int, Float, Char, String, etc.
+								Sensor_msgs	:	
+											This package defines messages for commonly used sensors like Joystick,  Temperature, Camaras  , etc.
+								Geometry_msgs	:
+											Provides messages for common geometric primitives such as points, vectors, and poses. 
+			Links:
+					Common_msgs:
+							http://wiki.ros.org/common_msgs?distro=melodic
+
+								Std_msgs	:
+											http://wiki.ros.org/std_msgs
+								Sensor_msgs	:	
+											http://wiki.ros.org/sensor_msgs?distro=melodic
+								Geometry_msgs	:
+											http://wiki.ros.org/geometry_msgs?distro=melodic
+Install Joy:
+		1.-	Installing the package:
+				$  sudo apt-get install ros-<distro>-joy
+		2.-	Configure the Joystick
+				2.1- Check input devices so we can see if ubuntu detecs it.
+					$  ls /dev/input/
+					(The jostick is call jsX where the X is a number whick identifies a joysticks from others, if you have one comonly it will be caled "js0"
+				2.2- Check if data is geted correctly recived.
+					$  sudo jstest /dev/input/jsX
+					( You must to see something like the information below Axes and Buttons information must change as you use the control)
+						Driver version is 2.1.0.
+						Joystick (Logitech Logitech Cordless RumblePad 2) has 6 axes (X, Y, Z, Rz, Hat0X, Hat0Y)
+						and 12 buttons (BtnX, BtnY, BtnZ, BtnTL, BtnTR, BtnTL2, BtnTR2, BtnSelect, BtnStart, BtnMode, BtnThumbL, BtnThumbR).
+						Testing ... (interrupt to exit)
+						Axes:  0:     0  1:     0  2:     0  3:     0  4:     0  5:     0 Buttons:  0:off  1:off  2:off  3:off  4:off  5:off  6:off  7:off  8:off  9:off 10:off 11:off	
+				2.3	Make the joystick accessible for the ROS joy node.
+					$  sudo chmod a+rw /dev/input/jsX
+					("X" Must be the number saw when the comand "$ ls /dev/input/" was executed)
+					(After the execution of "$  sudo chmod a+rw /dev/input/jsX" you will se some thing like this "crw-rw-XX- 1 root dialout 188, 0 2009-08-14 12:04 /dev/input/jsX" if XX 
+					If XX is rw: the js device is configured properly.	
+					If XX is --: the js device is not configured properly and you need to write the following comand "$ sudo chmod a+rw /dev/input/jsX". "X" Must be the number saw when the comand "$ ls /dev/input/" was executed)
+				2.4	Configure Joy package whit our jostick.
+					$ roscore
+					(In other terminal)
+					$ rosparam set joy_node/dev "/dev/input/jsX"
+					("X" Must be the number saw when the comand "$ ls /dev/input/" was executed)
+Starting the Joy Node
+		1.-Start the joy node. 
+			$ roscore
+			(In other terminal)
+			$ rosrun joy joy_node
+		2.-See the data sended by the node and see what it contains and its structure.
+			$ rostopic echo joy
+Use joy in your package and scrips:
+	1.-Check depencys:
+			1.1.- If you havent crate your package proyect
+					You must to add the following dependency " sensor_msgs " when you crate it 
+					Comand for creathing you package $ catkin_create_pkg <package_name> [depend1] [depend2] [depend3]
+			1.2.- If you have crate your package proyect you must to add it
+				1.2.1.-Open the following document which is inside your package	"package.xml"
+					1.2.1.1.-  Look where the dependencys are declared, bellow from the following line "<buildtool_depend>catkin</buildtool_depend>" and add the following lines
+							  <build_depend>sensor_msgs</build_depend>
+							  <build_export_depend>sensor_msgs</build_export_depend>
+							  <exec_depend>sensor_msgs</exec_depend>
+							( So it will looks like the following)
+								  <buildtool_depend>catkin</buildtool_depend>
+								  <build_depend>geometry_msgs</build_depend>
+								  <build_depend>roscpp</build_depend>
+								  <build_depend>rospy</build_depend>
+								  <build_depend>std_msgs</build_depend>
+
+								  <build_depend>sensor_msgs</build_depend>
+
+
+								  <build_export_depend>geometry_msgs</build_export_depend>
+								  <build_export_depend>roscpp</build_export_depend>
+								  <build_export_depend>rospy</build_export_depend>
+								  <build_export_depend>std_msgs</build_export_depend>
+
+								  <build_export_depend>sensor_msgs</build_export_depend>
+
+
+								  <exec_depend>geometry_msgs</exec_depend>
+								  <exec_depend>roscpp</exec_depend>
+								  <exec_depend>rospy</exec_depend>
+								  <exec_depend>std_msgs</exec_depend>
+
+								  <exec_depend>sensor_msgs</exec_depend>
+				1.2.2.-Open the CMakeLists.txt
+					1.2.2.1 FInd the following line "find_package(catkin REQUIRED COMPONENTS"   and add the followin line " sensor_msgs" so it will lokes like 
+						
+						find_package(catkin REQUIRED COMPONENTS
+						  geometry_msgs
+						  roscpp
+						  rospy
+						  std_msgs
+						  sensor_msgs
+						)
+					1.2.2.2 FInd the following line "## Generate added messages and services with any dependencies listed here"   and add the followin line " #   sensor_msgs" so it will lokes like 
+						## Generate added messages and services with any dependencies listed here
+						# generate_messages(
+						#   DEPENDENCIES
+						#   geometry_msgs#   std_msgs
+						#   sensor_msgs
+						# )
+					1.2.2.3.1 Look for the following part
+							###################################
+							## catkin specific configuration ##
+							###################################
+							## The catkin_package macro generates cmake config files for your package
+							## Declare things to be passed to dependent projects
+							## INCLUDE_DIRS: uncomment this if your package contains header files
+							## LIBRARIES: libraries you create in this project that dependent projects also need
+							## CATKIN_DEPENDS: catkin_packages dependent projects also need
+							## DEPENDS: system dependencies of this project that dependent projects also need
+							catkin_package(
+							#  INCLUDE_DIRS include
+							#  LIBRARIES semanai-robotica-espacial
+							#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs
+							#  DEPENDS system_lib
+							)
+					1.2.2.3.2 Then add the next dependency "sensor_msgs"
+
+							###################################
+							## catkin specific configuration ##
+							###################################
+							## The catkin_package macro generates cmake config files for your package
+							## Declare things to be passed to dependent projects
+							## INCLUDE_DIRS: uncomment this if your package contains header files
+							## LIBRARIES: libraries you create in this project that dependent projects also need
+							## CATKIN_DEPENDS: catkin_packages dependent projects also need
+							## DEPENDS: system dependencies of this project that dependent projects also need
+							catkin_package(
+							#  INCLUDE_DIRS include
+							#  LIBRARIES semanai-robotica-espacial
+							#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs sensor_msgs
+							#  DEPENDS system_lib
+							) 
+	2.-Make your scrip eable to use joy:
+		2.1 Python add the following lines to your scrip
+			import rospy			
+			from sensor_msgs.msg import Joy
+
+			
+
+
+												
+
+
+	
+
+
