@@ -51,7 +51,7 @@ def callback(data):
         rospy.loginfo("AXES:  RIGHT JOYSTICK:DOWN")
     if data.axes[5] == -1:
         rospy.loginfo("AXES:  RIGHT TRIGERS:DOWN")
-    
+
 
         #DIRECTIONAL PAD
     if data.axes[6] == 1:
@@ -62,7 +62,7 @@ def callback(data):
         rospy.loginfo("AXES:  DIRECTIONAL PAD:DOWN")
     if data.axes[7] == 1:
         rospy.loginfo("AXES:  DIRECTIONAL PAD:UP")
-    
+
 def joyListener():
 
     # In ROS, nodes are uniquely named. If two nodes with the same
@@ -79,3 +79,4 @@ def joyListener():
 
 if __name__ == '__main__':
     joyListener()
+    print("hola")
