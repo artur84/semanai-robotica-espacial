@@ -6,6 +6,7 @@
 # import ROS stuff
 import rospy
 from std_msgs.msg import Int32
+from geometry_msgs.msg import Point
 # import the necessary packages
 from collections import deque
 from imutils.video import VideoStream
@@ -20,8 +21,10 @@ import rospy
 def track_ball():
     # Init the ros node
     rospy.init_node("ball_tracker")
-    pub_center_x = rospy.Publisher('center_x', Int32, queue_size=10)
-    x_ros=Int32()
+    pub_center = rospy.Publisher('center', Point, queue_size=10)
+    pub_radius = rospy.Publisher('radius', Int32, queue_size=10)
+    center_ros = Point()
+    radius_ros=0
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--video",
         help="path to the (optional) video file")
@@ -32,8 +35,8 @@ def track_ball():
     # define the lower and upper boundaries of the "green"
     # ball in the HSV color space, then initialize the
     # list of tracked points
-    greenLower = (29, 86, 6)
-    greenUpper = (64, 255, 255)
+    greenLower = (160, 184, 106)
+    greenUpper = (193, 255, 255)
     pts = deque(maxlen=args["buffer"])
 
     # if a video path was not supplied, grab the reference
@@ -97,7 +100,12 @@ def track_ball():
             if radius > 10:
                 # draw the circle and centroid on the frame,
                 # then update the list of tracked points
-                x_ros=int(x)
+                center_ros.x=float(x)
+                center_ros.y=float(y)
+                center_ros.z=0 #As it is an image z is not used.
+                radius_ros=int(radius)
+                pub_center.publish(center_ros)
+                pub_radius.publish(radius_ros)
                 cv2.circle(frame, (int(x), int(y)), int(radius),
                     (0, 255, 255), 2)
                 cv2.circle(frame, center, 5, (0, 0, 255), -1)
@@ -120,7 +128,7 @@ def track_ball():
         # show the frame to our screen
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
-        pub_center_x.publish(x_ros)
+        
         # if the 'q' key is pressed, stop the loop
         if key == ord("q"):
             break
