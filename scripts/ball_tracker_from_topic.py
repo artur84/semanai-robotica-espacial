@@ -7,6 +7,8 @@
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import Point
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 # import the necessary packages
 from collections import deque
 from imutils.video import VideoStream
@@ -17,65 +19,67 @@ import imutils
 import time
 import rospy
 
+
+
 # construct the argument parse and parse the arguments
-def track_ball():
-    # Init the ros node
-    rospy.init_node("ball_tracker")
-    pub_center = rospy.Publisher('center', Point, queue_size=10)
-    pub_radius = rospy.Publisher('radius', Int32, queue_size=10)
-    center_ros = Point()
-    radius_ros=0
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-v", "--video",
-        help="path to the (optional) video file")
-    ap.add_argument("-b", "--buffer", type=int, default=64,
-        help="max buffer size")
-    args = vars(ap.parse_args())
+class BallTracker():
+    def __init__(self):
+        # Init the ros node
+        rospy.init_node("ball_tracker")
+        self.pub_center = rospy.Publisher('center', Point, queue_size=10)
+        self.pub_radius = rospy.Publisher('radius', Int32, queue_size=10)
+        self.image_sub = rospy.Subscriber("/two_wheels_robot/camera1/image_raw",Image,self.camera_callback)
+        self.bridge_object = CvBridge() #Creates the bridge object between ROS and opencv images
+        self.center_ros = Point()
+        self.radius_ros=0
 
-    # define the lower and upper boundaries of the "green"
-    # ball in the HSV color space, then initialize the
-    # list of tracked points
-    greenLower = (143, 143, 10)
-    greenUpper = (241, 255, 255)
-    pts = deque(maxlen=args["buffer"])
+        ap = argparse.ArgumentParser()
+        ap.add_argument("-v", "--video",
+            help="path to the (optional) video file")
+        ap.add_argument("-b", "--buffer", type=int, default=64,
+            help="max buffer size")
+        self.args = vars(ap.parse_args())
 
-    # if a video path was not supplied, grab the reference
-    # to the webcam
-    if not args.get("video", False):
-        vs = VideoStream(src=0).start()
 
-    # otherwise, grab a reference to the video file
-    else:
-        vs = cv2.VideoCapture(args["video"])
+        # define the lower and upper boundaries of the "green"
+        # ball in the HSV color space, then initialize the
+        # list of tracked points
+        self.greenLower = (5, 50, 50)
+        self.greenUpper = (15, 255, 255)
+        self.pts = deque(maxlen=self.args["buffer"])
 
-    # allow the camera or video file to warm up
-    time.sleep(2.0)
 
-    #To adjust the execution rate of the while Loop
-    ros_rate = rospy.Rate(10) #10Hz
-    # keep looping
-    while not rospy.is_shutdown():
-        # grab the current frame
-        frame = vs.read()
+        #To adjust the execution rate of the while Loop
+        ros_rate = rospy.Rate(10) #10Hz
+        # keep looping
+        while not rospy.is_shutdown():
+            if self.radius_ros>0: #Just publish something if the radius is large enough
+                self.pub_center.publish(self.center_ros)
+                self.pub_radius.publish(self.radius_ros)
+            ros_rate.sleep()
 
-        # handle the frame from VideoCapture or VideoStream
-        frame = frame[1] if args.get("video", False) else frame
+        # close all windows
+        cv2.destroyAllWindows()
 
-        # if we are viewing a video and we did not grab a frame,
-        # then we have reached the end of the video
-        if frame is None:
-            break
+    def camera_callback(self, data):
+        print("callback")
+        try:
+            # We select bgr8 because its the OpenCV encoding by default
+            self.frame = self.bridge_object.imgmsg_to_cv2(data, desired_encoding="bgr8")
+        except CvBridgeError as e:
+            print(e)
+
 
         # resize the frame, blur it, and convert it to the HSV
         # color space
-        frame = imutils.resize(frame, width=600)
-        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+        self.frame = imutils.resize(self.frame, width=600)
+        blurred = cv2.GaussianBlur(self.frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
         # construct a mask for the color "green", then perform
         # a series of dilations and erosions to remove any small
         # blobs left in the mask
-        mask = cv2.inRange(hsv, greenLower, greenUpper)
+        mask = cv2.inRange(hsv, self.greenLower, self.greenUpper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
 
@@ -100,53 +104,34 @@ def track_ball():
             if radius > 10:
                 # draw the circle and centroid on the frame,
                 # then update the list of tracked points
-                center_ros.x=float(x)
-                center_ros.y=float(y)
-                center_ros.z=0 #As it is an image z is not used.
-                radius_ros=int(radius)
-                pub_center.publish(center_ros)
-                pub_radius.publish(radius_ros)
-                cv2.circle(frame, (int(x), int(y)), int(radius),
+                self.center_ros.x=float(x)
+                self.center_ros.y=float(y)
+                self.center_ros.z=0 #As it is an image z is not used.
+                self.radius_ros=int(radius)
+
+                cv2.circle(self.frame, (int(x), int(y)), int(radius),
                     (0, 255, 255), 2)
-                cv2.circle(frame, center, 5, (0, 0, 255), -1)
+                cv2.circle(self.frame, center, 5, (0, 0, 255), -1)
 
         # update the points queue
-        pts.appendleft(center)
+        self.pts.appendleft(center)
 
         # loop over the set of tracked points
-        for i in range(1, len(pts)):
+        for i in range(1, len(self.pts)):
             # if either of the tracked points are None, ignore
             # them
-            if pts[i - 1] is None or pts[i] is None:
+            if self.pts[i - 1] is None or self.pts[i] is None:
                 continue
 
             # otherwise, compute the thickness of the line and
             # draw the connecting lines
-            thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-            cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+            thickness = int(np.sqrt(self.args["buffer"] / float(i + 1)) * 2.5)
+            cv2.line(self.frame, self.pts[i - 1], self.pts[i], (0, 0, 255), thickness)
 
         # show the frame to our screen
-        cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", self.frame)
         key = cv2.waitKey(1) & 0xFF
-
-        # if the 'q' key is pressed, stop the loop
-        if key == ord("q"):
-            break
-
-        ros_rate.sleep()
-
-
-    # if we are not using a video file, stop the camera video stream
-    if not args.get("video", False):
-        vs.stop()
-
-    # otherwise, release the camera
-    else:
-        vs.release()
-
-    # close all windows
-    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    track_ball()
+    BallTracker()
