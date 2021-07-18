@@ -210,3 +210,6 @@ include_directories(
 
 catkin_install_python(PROGRAMS scripts/ball_tracker.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+  
+catkin_install_python(PROGRAMS scripts/ball_tracker_from_topic.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
