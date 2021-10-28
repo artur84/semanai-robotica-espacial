@@ -57,7 +57,7 @@ def vels(left, right):
 
 if __name__ == "__main__":
     settings = termios.tcgetattr(sys.stdin)
-    rospy.init_node('teleop_twist_keyboard')
+    rospy.init_node('rover_teleop_key')
     """ ROS Parameters
     """
     right_wheel_speed_pub = rospy.Publisher('right_wheel_speed', Int32, queue_size=10)
