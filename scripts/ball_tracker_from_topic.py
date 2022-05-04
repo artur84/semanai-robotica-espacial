@@ -1,7 +1,10 @@
 #!/usr/bin/env python
-""" This program publishes a given integer to a ROS topic
-    published topic:
-        /number_topic
+""" This program publishes the radius and center of the detected ball 
+    published topics:
+        /center  [Point]
+        /radius  [Int32]
+    subscribed topics:
+        /camera/image_raw    [Image]
 """
 # import ROS stuff
 import rospy
@@ -24,14 +27,16 @@ import rospy
 # construct the argument parse and parse the arguments
 class BallTracker():
     def __init__(self):
+        rospy.on_shutdown(self.cleanup)
         # Init the ros node
         rospy.init_node("ball_tracker")
         self.pub_center = rospy.Publisher('center', Point, queue_size=10)
         self.pub_radius = rospy.Publisher('radius', Int32, queue_size=10)
-        self.image_sub = rospy.Subscriber("/two_wheels_robot/camera1/image_raw",Image,self.camera_callback)
+        self.image_sub = rospy.Subscriber("camera/image_raw",Image,self.camera_callback)
         self.bridge_object = CvBridge() #Creates the bridge object between ROS and opencv images
         self.center_ros = Point()
         self.radius_ros=0
+        self.image_received_flag = 0 #This flag is to ensure we received at least one image
 
         ap = argparse.ArgumentParser()
         ap.add_argument("-v", "--video",
@@ -44,8 +49,8 @@ class BallTracker():
         # define the lower and upper boundaries of the "green"
         # ball in the HSV color space, then initialize the
         # list of tracked points
-        self.greenLower = (5, 50, 50)
-        self.greenUpper = (15, 255, 255)
+        self.colorLower = (0, 120, 50)
+        self.colorUpper = (20, 255, 255)
         self.pts = deque(maxlen=self.args["buffer"])
 
 
@@ -53,23 +58,30 @@ class BallTracker():
         ros_rate = rospy.Rate(10) #10Hz
         # keep looping
         while not rospy.is_shutdown():
-            if self.radius_ros>0: #Just publish something if the radius is large enough
-                self.pub_center.publish(self.center_ros)
-                self.pub_radius.publish(self.radius_ros)
+            if self.image_received_flag == 1:
+                self.find_ball()
+                # show the frame to our screen
+                cv2.imshow("Frame", self.frame)
+                self.image_received_flag = 0
+            #Publish the radius and the center of the ball
+            self.pub_center.publish(self.center_ros)
+            self.pub_radius.publish(self.radius_ros)
+            key = cv2.waitKey(1) & 0xFF
             ros_rate.sleep()
 
-        # close all windows
-        cv2.destroyAllWindows()
+        
 
     def camera_callback(self, data):
         print("callback")
         try:
             # We select bgr8 because its the OpenCV encoding by default
             self.frame = self.bridge_object.imgmsg_to_cv2(data, desired_encoding="bgr8")
+            self.image_received_flag = 1
         except CvBridgeError as e:
             print(e)
 
 
+    def find_ball(self):
         # resize the frame, blur it, and convert it to the HSV
         # color space
         self.frame = imutils.resize(self.frame, width=600)
@@ -79,7 +91,7 @@ class BallTracker():
         # construct a mask for the color "green", then perform
         # a series of dilations and erosions to remove any small
         # blobs left in the mask
-        mask = cv2.inRange(hsv, self.greenLower, self.greenUpper)
+        mask = cv2.inRange(hsv, self.colorLower, self.colorUpper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
 
@@ -128,10 +140,11 @@ class BallTracker():
             thickness = int(np.sqrt(self.args["buffer"] / float(i + 1)) * 2.5)
             cv2.line(self.frame, self.pts[i - 1], self.pts[i], (0, 0, 255), thickness)
 
-        # show the frame to our screen
-        cv2.imshow("Frame", self.frame)
-        key = cv2.waitKey(1) & 0xFF
-
+    def cleanup(self):
+        print("Shutting down vision node")
+        # close all windows
+        cv2.destroyAllWindows()
+        
 
 if __name__ == '__main__':
     BallTracker()
