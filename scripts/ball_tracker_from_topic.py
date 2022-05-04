@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """ This program publishes the radius and center of the detected ball 
+    All values will be zero if there is no detected object
     published topics:
         /center  [Point]
         /radius  [Int32]
@@ -124,6 +125,21 @@ class BallTracker():
                 cv2.circle(self.frame, (int(x), int(y)), int(radius),
                     (0, 255, 255), 2)
                 cv2.circle(self.frame, center, 5, (0, 0, 255), -1)
+            else:
+                self.center_ros.x=0
+                self.center_ros.y=0
+                self.center_ros.z=0
+                self.radius_ros=0
+                cv2.circle(self.frame, (int(x), int(y)), int(radius),
+                    (0, 255, 255), 2)
+                cv2.circle(self.frame, center, 5, (0, 0, 255), -1)
+        else:
+            # Publish a radius of zero if there is no detected object
+            self.center_ros.x=0
+            self.center_ros.y=0
+            self.center_ros.z=0
+            self.radius_ros=0
+            cv2.circle(self.frame, (0, 0), 1, (0, 0, 0), 2)
 
         # update the points queue
         self.pts.appendleft(center)
